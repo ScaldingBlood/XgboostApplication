@@ -274,12 +274,12 @@ if __name__ == "__main__":
     params = {
         'objective': 'binary:logistic',
         'eta': 0.1,
-        'colsample_bytree': 0.886,
-        'min_child_weight': 2,
-        'max_depth': 10,
-        'subsample': 0.886,
-        'alpha': 10,
-        'gamma': 30,
+        'colsample_bytree': 0.886, # 用于训练吗的子样本占整个样本集合的比例
+        'min_child_weight': 2, # 如果叶子节点的样本权重和小于min_child_weight则拆分结束
+        'max_depth': 10, # 树的最大深度，深度越大对数据拟合程度越高，控制过拟合
+        'subsample': 0.886, # 建树时对特征随机采样的比例
+        'alpha': 10, # 权重的L1正则化项
+        'gamma': 30, # 剪枝时判断是否需要剪枝的常数
         'lambda':50,
         'verbose_eval': True,
         'nthread': 8,
