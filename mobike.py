@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 
 cache_path = 'mobike_cache/'
-train_path = '/Users/paz/Downloads/MOBIKE_CUP_2017/train.csv'
-test_path = '/Users/paz/Downloads/MOBIKE_CUP_2017/test.csv'
+train_path = 'data/mobike_train.csv'
+test_path = 'data/mobike_test.csv'
 flag = True
 
 # 相差的分钟数
