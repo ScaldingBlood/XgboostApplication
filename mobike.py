@@ -46,7 +46,7 @@ def cal_distance(lat1,lon1,lat2,lon2):
 def rank(data, feat1, feat2, ascending):
     data.sort_values([feat1,feat2],inplace=True,ascending=ascending) # 根据id和pred的值降序排序
     data['rank'] = range(data.shape[0]) # rank值为记录数
-    min_rank = data.groupby(feat1,as_index=False)['rank'].agg({'min_rank':'min'}) # 每一个orderid的rank的最小值（不是一样的吗？？？）
+    min_rank = data.groupby(feat1,as_index=False)['rank'].agg({'min_rank':'min'}) # 按每一个orderid的rank给一个常数值
     data = pd.merge(data,min_rank,on=feat1,how='left') # 合并进去
     data['rank'] = data['rank'] - data['min_rank'] # rank - minrank
     del data['min_rank']
@@ -273,25 +273,25 @@ if __name__ == "__main__":
        'user_eloc_sloc_count', 'distance', 'eloc_count', 'eloc_as_sloc_count']
     params = {
         'objective': 'binary:logistic',
-        'eta': 0.1,
-        'colsample_bytree': 0.886,
-        'min_child_weight': 2,
-        'max_depth': 10,
-        'subsample': 0.886,
-        'alpha': 10,
-        'gamma': 30,
-        'lambda':50,
+        'eta': 0.05,
+        'colsample_bytree': 0.886, # 用于训练吗的子样本占整个样本集合的比例
+        'min_child_weight': 2, # 如果叶子节点的样本权重和小于min_child_weight则拆分结束 避免过拟合 用cv调整
+        'max_depth': 10, # 树的最大深度，深度越大对数据拟合程度越高，控制过拟合
+        'subsample': 0.886, # 建树时对特征随机采样的比例
+        'alpha': 10, # 权重的L1正则化项
+        'gamma': 30, # 剪枝时判断是否需要剪枝的常数 指定损失函数需要下降的值
+        'lambda':50, # L2
         'verbose_eval': True,
-        'nthread': 8,
+        #'nthread': 8, 不写系统会自动设置
         'eval_metric': 'auc',
-        'scale_pos_weight': 10,
+        'scale_pos_weight': 10, # 各样本类别不平衡时可以使算法更快收敛
         'seed': 201703,
         'missing':-1
     }
 
     xgbtrain = xgb.DMatrix(train_feat[predictors], train_feat['label'])
     xgbtest = xgb.DMatrix(test_feat[predictors])
-    model = xgb.train(params, xgbtrain, num_boost_round=120)
+    model = xgb.train(params, xgbtrain, num_boost_round=10000) # 迭代次数/生成树的个数
     del train_feat,xgbtrain
     gc.collect()
 
