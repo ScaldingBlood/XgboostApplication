@@ -262,6 +262,7 @@ if __name__ == "__main__":
 
     print('构造训练集')
     train_feat = make_train_set(train1,train2)
+    # train_feat = make_train_set(train, train)
     print('构造线上测试集')
     test_feat = make_train_set(train,test)
     del train,test,train1,train2
@@ -291,14 +292,17 @@ if __name__ == "__main__":
 
     xgbtrain = xgb.DMatrix(train_feat[predictors], train_feat['label'])
     xgbtest = xgb.DMatrix(test_feat[predictors])
-    model = xgb.train(params, xgbtrain, num_boost_round=10000) # 迭代次数/生成树的个数
-    del train_feat,xgbtrain
-    gc.collect()
 
-    test_feat.loc[:,'pred'] = model.predict(xgbtest)
-    result = reshape(test_feat)
-    test = pd.read_csv(test_path)
-    result = pd.merge(test[['orderid']],result,on='orderid',how='left')
-    result.fillna('0',inplace=True)
-    result.to_csv('result.csv',index=False,header=False)
+    cv_xgb = xgbtrain.cv(parmas=params, dtrain=xgbtrain, num_boost_round=3000,
+                         nfold=5, early_stopping_rounds=100, metrics=['error'])
+    # model = xgb.train(params, xgbtrain, num_boost_round=120) # 迭代次数/生成树的个数
+    # del train_feat,xgbtrain
+    # gc.collect()
+    #
+    # test_feat.loc[:,'pred'] = model.predict(xgbtest)
+    # result = reshape(test_feat)
+    # test = pd.read_csv(test_path)
+    # result = pd.merge(test[['orderid']],result,on='orderid',how='left')
+    # result.fillna('0',inplace=True)
+    # result.to_csv('result.csv',index=False,header=False)
     print('一共用时{}秒'.format(time.time()-t0))
