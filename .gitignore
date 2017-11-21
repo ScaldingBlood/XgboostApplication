@@ -1,1 +1,4 @@
-.idea/
+data
+mobike_cache
+.idea
+result.csv
