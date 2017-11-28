@@ -5,6 +5,8 @@ import pickle
 import Geohash
 import numpy as np
 import pandas as pd
+from sklearn.grid_search import GridSearchCV
+from xgboost.sklearn import XGBClassifier
 
 cache_path = 'mobike_cache/'
 train_path = 'data/mobike_train.csv'
@@ -274,7 +276,7 @@ if __name__ == "__main__":
        'user_eloc_sloc_count', 'distance', 'eloc_count', 'eloc_as_sloc_count']
     params = {
         'objective': 'binary:logistic',
-        'eta': 0.05,
+        'eta': 0.1,
         'colsample_bytree': 0.886, # 用于训练吗的子样本占整个样本集合的比例
         'min_child_weight': 2, # 如果叶子节点的样本权重和小于min_child_weight则拆分结束 避免过拟合 用cv调整
         'max_depth': 10, # 树的最大深度，深度越大对数据拟合程度越高，控制过拟合
@@ -287,14 +289,50 @@ if __name__ == "__main__":
         'eval_metric': 'auc',
         'scale_pos_weight': 10, # 各样本类别不平衡时可以使算法更快收敛
         'seed': 201703,
-        'missing':-1
+        'missing':-1,
+        'silent': 1
     }
 
-    xgbtrain = xgb.DMatrix(train_feat[predictors], train_feat['label'])
-    xgbtest = xgb.DMatrix(test_feat[predictors])
+    param_test = {
+        'max_depth': range(3, 10, 2),
+        'min_child_weight': range(1, 10, 2)
+    }
 
-    cv_xgb = xgbtrain.cv(parmas=params, dtrain=xgbtrain, num_boost_round=3000,
-                         nfold=5, early_stopping_rounds=100, metrics=['error'])
+    param_test2 = {
+        'gamma': [i / 10.0 for i in range(0, 5)]
+    }
+
+    param_test3 = {
+        'subsample': [i / 10.0 for i in range(6, 10)],
+        'colsample_bytree': [i / 10.0 for i in range(6, 10)]
+    }
+
+    param_test4 = {
+        'subsample': [i / 100.0 for i in range(75, 90, 5)],
+        'colsample_bytree': [i / 100.0 for i in range(75, 90, 5)]
+    }
+
+    param_test5 = {
+        'reg_alpha': [1e-5, 1e-2, 0.1, 1, 100]
+    }
+
+    optimized_GBM = GridSearchCV(XGBClassifier(params), param_test, scoring='accuracy', cv=5)
+    print(optimized_GBM.grid_scores_)
+    optimized_GBM = GridSearchCV(XGBClassifier(params), param_test2, scoring='accuracy', cv=5)
+    print(optimized_GBM.grid_scores_)
+    optimized_GBM = GridSearchCV(XGBClassifier(params), param_test3, scoring='accuracy', cv=5)
+    print(optimized_GBM.grid_scores_)
+    optimized_GBM = GridSearchCV(XGBClassifier(params), param_test4, scoring='accuracy', cv=5)
+    print(optimized_GBM.grid_scores_)
+    optimized_GBM = GridSearchCV(XGBClassifier(params), param_test5, scoring='accuracy', cv=5)
+    print(optimized_GBM.grid_scores_)
+
+    # xgbtrain = xgb.DMatrix(train_feat[predictors], train_feat['label'])
+    # xgbtest = xgb.DMatrix(test_feat[predictors])
+    #
+    # cv_xgb = xgb.cv(params=params, dtrain=xgbtrain, num_boost_round=3000, nfold=5,
+    #                 early_stopping_rounds=100, metrics=['error'], verbose_eval=True)
+
     # model = xgb.train(params, xgbtrain, num_boost_round=120) # 迭代次数/生成树的个数
     # del train_feat,xgbtrain
     # gc.collect()
