@@ -5,6 +5,7 @@ import pickle
 import Geohash
 import numpy as np
 import pandas as pd
+import datetime
 
 cache_path = 'mobike_cache/'
 train_path = 'data/mobike_train.csv'
@@ -138,6 +139,23 @@ def get_loc_to_loc(train,test):
     return result
 
 
+# 判断用户出行时间 周内 早/晚/其他 周末 早/晚/其他
+def get_user_start_time(result):
+    def judge_day_time(time):
+        hour = time.hour
+        if 5 < hour < 10:
+            return 'm'
+        elif 16 < hour < 21:
+            return 'a'
+        else:
+            return 'o'
+    starttime = result.pop('starttime')
+    starttime = pd.to_datetime(starttime)
+    result['daytime'] = pd.Categorical(starttime.apply(lambda x: judge_day_time(x))).codes
+    result['weekday'] = pd.Categorical(starttime.apply(lambda x: 'a' if x.dayofweek < 5 else 'b')).codes
+    return result
+
+
 # 获取用户历史行为次数
 def get_user_count(train,result):
     user_count = train.groupby('userid',as_index=False)['geohashed_end_loc'].agg({'user_count':'count'})
@@ -221,7 +239,7 @@ def get_sample(train,test):
         result = pd.merge(result, test_temp, on='orderid', how='left')
         result['label'] = (result['label'] == result['geohashed_end_loc']).astype(int)
         # 删除起始地点和目的地点相同的样本  和 异常值
-        result = result[result['geohashed_end_loc'] != result['geohashed_start_loc']]
+        # result = result[result['geohashed_end_loc'] != result['geohashed_start_loc']]
         result = result[(~result['geohashed_end_loc'].isnull()) & (~result['geohashed_start_loc'].isnull())]
         result.to_hdf(result_path, 'w', complib='blosc', complevel=5)
     return result
@@ -232,6 +250,7 @@ def make_train_set(train,test):
     result = get_sample(train,test)                                         # 构造备选样本
 
     print('开始构造特征...')
+    result = get_user_start_time(result)
     result = get_user_count(train,result)                                   # 获取用户历史行为次数
     result = get_user_eloc_count(train, result)                             # 获取用户去过这个地点几次
     result = get_user_sloc_count(train, result)                             # 获取用户从目的地点出发过几次
@@ -260,6 +279,9 @@ if __name__ == "__main__":
     train2.loc[:,'geohashed_end_loc'] = np.nan
     test.loc[:,'geohashed_end_loc'] = np.nan
 
+    if not os.path.exists(cache_path):
+        os.mkdir(cache_path)
+
     print('构造训练集')
     train_feat = make_train_set(train1,train2)
     # train_feat = make_train_set(train, train)
@@ -271,7 +293,7 @@ if __name__ == "__main__":
     import xgboost as xgb
     predictors = [ 'biketype','user_count',
        'user_eloc_count', 'user_sloc_count', 'user_sloc_eloc_count',
-       'user_eloc_sloc_count', 'distance', 'eloc_count', 'eloc_as_sloc_count']
+       'user_eloc_sloc_count', 'distance', 'eloc_count', 'eloc_as_sloc_count', 'weekday', 'daytime']
     params = {
         'objective': 'binary:logistic',
         'eta': 0.05,
