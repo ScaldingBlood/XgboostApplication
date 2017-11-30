@@ -273,6 +273,7 @@ def make_train_set(train,test):
 # 训练提交
 
 if __name__ == "__main__":
+    print('go')
     t0 = time.time()
     train = pd.read_csv(train_path)
     test = pd.read_csv(test_path)
@@ -295,10 +296,12 @@ if __name__ == "__main__":
     import xgboost as xgb
     predictors = [ 'biketype','user_count',
        'user_eloc_count', 'user_sloc_count', 'user_sloc_eloc_count',
-       'user_eloc_sloc_count', 'distance', 'eloc_count', 'eloc_as_sloc_count', 'weekday', 'daytime']
+       # 'user_eloc_sloc_count', 'distance', 'eloc_count', 'eloc_as_sloc_count', 'weekday', 'daytime']
+       'user_eloc_sloc_count', 'distance', 'eloc_count', 'eloc_as_sloc_count']
     params = {
         'objective': 'binary:logistic',
         'eta': 0.1,
+        'n_estimators': 30,
         'colsample_bytree': 0.886, # 用于训练吗的子样本占整个样本集合的比例
         'min_child_weight': 2, # 如果叶子节点的样本权重和小于min_child_weight则拆分结束 避免过拟合 用cv调整
         'max_depth': 10, # 树的最大深度，深度越大对数据拟合程度越高，控制过拟合
@@ -316,22 +319,22 @@ if __name__ == "__main__":
     }
 
     param_test = {
-        'max_depth': range(3, 10, 2),
-        'min_child_weight': range(1, 10, 2)
+        'max_depth': list(range(3, 10, 2)),
+        'min_child_weight': list(range(1, 10, 2))
     }
 
     param_test2 = {
-        'gamma': [i / 10.0 for i in range(0, 5)]
+        'gamma': [i / 10.0 for i in list(range(0, 5))]
     }
 
     param_test3 = {
-        'subsample': [i / 10.0 for i in range(6, 10)],
-        'colsample_bytree': [i / 10.0 for i in range(6, 10)]
+        'subsample': [i / 10.0 for i in list(range(6, 10))],
+        'colsample_bytree': [i / 10.0 for i in list(range(6, 10))]
     }
 
     param_test4 = {
-        'subsample': [i / 100.0 for i in range(75, 90, 5)],
-        'colsample_bytree': [i / 100.0 for i in range(75, 90, 5)]
+        'subsample': [i / 100.0 for i in list(range(75, 90, 5))],
+        'colsample_bytree': [i / 100.0 for i in list(range(75, 90, 5))]
     }
 
     param_test5 = {
@@ -339,15 +342,24 @@ if __name__ == "__main__":
     }
 
     optimized_GBM = GridSearchCV(XGBClassifier(params), param_test, scoring='accuracy', cv=5)
+    optimized_GBM.fit(train_feat[predictors], train_feat['label'])
     print(optimized_GBM.grid_scores_)
-    optimized_GBM = GridSearchCV(XGBClassifier(params), param_test2, scoring='accuracy', cv=5)
-    print(optimized_GBM.grid_scores_)
-    optimized_GBM = GridSearchCV(XGBClassifier(params), param_test3, scoring='accuracy', cv=5)
-    print(optimized_GBM.grid_scores_)
-    optimized_GBM = GridSearchCV(XGBClassifier(params), param_test4, scoring='accuracy', cv=5)
-    print(optimized_GBM.grid_scores_)
-    optimized_GBM = GridSearchCV(XGBClassifier(params), param_test5, scoring='accuracy', cv=5)
-    print(optimized_GBM.grid_scores_)
+
+    # optimized_GBM = GridSearchCV(XGBClassifier(params), param_test2, scoring='accuracy', cv=5)
+    # optimized_GBM.fit(train_feat[predictors], train_feat['label'])
+    # print(optimized_GBM.grid_scores_)
+    #
+    # optimized_GBM = GridSearchCV(XGBClassifier(params), param_test3, scoring='accuracy', cv=5)
+    # optimized_GBM.fit(train_feat[predictors], train_feat['label'])
+    # print(optimized_GBM.grid_scores_)
+    #
+    # optimized_GBM = GridSearchCV(XGBClassifier(params), param_test4, scoring='accuracy', cv=5)
+    # optimized_GBM.fit(train_feat[predictors], train_feat['label'])
+    # print(optimized_GBM.grid_scores_)
+    #
+    # optimized_GBM = GridSearchCV(XGBClassifier(params), param_test5, scoring='accuracy', cv=5)
+    # optimized_GBM.fit(train_feat[predictors], train_feat['label'])
+    # print(optimized_GBM.grid_scores_)
 
     # xgbtrain = xgb.DMatrix(train_feat[predictors], train_feat['label'])
     # xgbtest = xgb.DMatrix(test_feat[predictors])
